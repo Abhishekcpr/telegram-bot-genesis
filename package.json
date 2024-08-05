@@ -12,6 +12,7 @@
     "dotenv": "^16.4.5",
     "mongoose": "^8.5.2",
     "nodemon": "^3.1.4",
+    "react-modal": "^3.16.1",
     "telegraf": "^4.16.3"
   }
 }

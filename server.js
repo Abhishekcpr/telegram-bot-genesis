@@ -5,7 +5,7 @@ require('dotenv').config({})
 // const User = require('./model')
 // const mongoose = require('mongoose')
 const { message } = require('telegraf/filters')
-
+const ariaAppHider = require('react-modal/lib/helpers/ariaAppHider');
 
 const bot  = new Telegraf(process.env.TELEGRAM_BOT_API);
 

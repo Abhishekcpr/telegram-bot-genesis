@@ -399,7 +399,7 @@ bot.on('text', async(ctx) => {
 
 
 bot.command('generate',async(ctx)=> ctx.reply("💖"))
-bot.startPolling()
+bot.launch()
 
 // Launch the bot
 // bot.launch().catch(error => {

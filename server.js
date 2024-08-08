@@ -393,11 +393,13 @@ bot.command('generate',async(ctx)=> ctx.reply("💖"))
 
 module.exports = bot;
 
-
+bot.botInfo = await bot.telegram.getMe();
+console.log("Bot started");
+bot.launch();
 // Launch the bot
-bot.launch().catch(error => {
-  console.error('Failed to launch bot:', error);
-});
+// bot.launch().catch(error => {
+//   console.error('Failed to launch bot:', error);
+// });
 
 // Enable graceful stop
 process.once('SIGINT', () => {

@@ -8,7 +8,16 @@ const { message } = require('telegraf/filters')
 const ariaAppHider = require('react-modal/lib/helpers/ariaAppHider');
 
 const bot  = new Telegraf(process.env.TELEGRAM_BOT_API);
+const express = require('express')
+const expressApp = express()
 
+const port = process.env.PORT || 3000
+expressApp.get('/', (req, res) => {
+  res.send('Hello World!')
+})
+expressApp.listen(port, () => {
+  console.log(`Listening on port ${port}`)
+})
 // bot.start(async(ctx) => {
 
 //     const userInfo = ctx.update.message.from ;
@@ -390,12 +399,8 @@ bot.on('text', async(ctx) => {
 
 
 bot.command('generate',async(ctx)=> ctx.reply("💖"))
+bot.startPolling()
 
-module.exports = bot;
-
-bot.botInfo = await bot.telegram.getMe();
-console.log("Bot started");
-bot.launch();
 // Launch the bot
 // bot.launch().catch(error => {
 //   console.error('Failed to launch bot:', error);

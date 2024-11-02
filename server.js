@@ -2,8 +2,8 @@
 const { log } = require('react-modal/lib/helpers/ariaAppHider');
 const {Telegraf, Markup,session} = require('telegraf')
 require('dotenv').config({})
-// const User = require('./model')
-// const mongoose = require('mongoose')
+const geminiResponse = require('./geminiResponse')
+
 const { message } = require('telegraf/filters')
 const ariaAppHider = require('react-modal/lib/helpers/ariaAppHider');
 
@@ -53,7 +53,10 @@ bot.start(async(ctx) => {
            ctx.session.login = false ;
            ctx.session.delId = "" ;
            ctx.session.userId = "" ;
-           ctx.session.jobs = {}
+           ctx.session.jobs = {};
+           ctx.session.email = "";
+           ctx.session.username = "";
+           ctx.session.token = "";
            
             ctx.reply(`Hi ${userInfo.first_name}, welcome to EMO ~Abhishek, admin`)
             ctx.reply('Please enter your phone number:');
@@ -80,13 +83,24 @@ bot.start(async(ctx) => {
 });
 
 
-bot.command('/logout',async(ctx)=>{
- delete userStates[ctx.chat.id]
- await ctx.reply("You have successfully logged out, see u again...")
- ctx.session.login=false
+bot.command('logout',async(ctx)=>{
+  await ctx.reply("You have successfully logged out, see u again...")
+   ctx.session.login=false
+   ctx.session.token = ""
+  delete userStates[ctx.chat.id] 
 
 
 })
+
+
+// find Cricket scores : 
+// bot.command('cricket-scores',async(ctx)=>{
+   
+//   const getScores = await fetch('https://api.cricapi.com/v1/countries?apikey=99564502-2503-43df-8a75-f88a86698c42')
+//   const getJSON = await getScores.json() ;
+
+//   await ctx.reply(getJSON)
+// })
 
 bot.command('menu',  (ctx) => {
 
@@ -109,16 +123,21 @@ bot.command('menu',  (ctx) => {
     ctx.answerCbQuery(); // Acknowledge the button click
      
     // ctx.userStates[ctx.chat.id].state = "await_job_sequence"
-    ctx.reply("Enter the job sequence to apply..")
+    
     try{
         const response = await fetch(`https://online-job-portal-part-time.onrender.com/api/jobs/getalljobs`, {
-            method : 'GET'
+            method : 'GET',
+            headers : {
+
+              "Authorization" : ctx.session.token
+            }
             
            })
 
            if(response.ok)
            {
             const workersData = await response.json() ;
+           await ctx.reply("Enter the job sequence to apply..")
             // console.log(workersData.msg);
 
             if(workersData.msg.length > 0)
@@ -161,11 +180,15 @@ bot.command('menu',  (ctx) => {
     ctx.reply('Please provide the job details to create new job');
     ctx.reply("category?")
 
-    
+  });
 
-
-  
-
+  bot.action('query_admin', (ctx) => {
+    ctx.answerCbQuery(); 
+    const chatId = ctx.chat.id ;
+    const userState = userStates[chatId] || {} ;
+   
+    userStates[chatId].state = "awaiting_query" ;
+    ctx.reply('Please enter your query you want to ask:');
 
   });
 
@@ -175,7 +198,11 @@ bot.command('menu',  (ctx) => {
     ctx.reply("showing results")
     try{
         const response = await fetch(`https://online-job-portal-part-time.onrender.com/api/auth/profile`, {
-            method : 'GET'
+            method : 'GET',
+            headers:{
+               "Content-Type" : "application/json",
+               "Authorization" : ctx.session.token
+            }
             
            })
 
@@ -252,8 +279,12 @@ bot.on('text', async(ctx) => {
            if(response.ok)
            {
              const logindata = await response.json() ;
+             
              ctx.session.login = true
              ctx.session.userId = logindata.userId ;
+             ctx.session.email = logindata.email ;
+             ctx.session.username = logindata.username ;
+             ctx.session.token = logindata.token ;
              ctx.reply(`Thank you, ${logindata.username}. You have successfully logged in.`)
            }
            else
@@ -300,12 +331,13 @@ bot.on('text', async(ctx) => {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+             "Authorization" : ctx.session.token
           },
           body : JSON.stringify({userId : ctx.session.userId, 
             jobId : ctx.session.jobs[userState.jobseq],demandedBudget: userState.jobBudget,description: userState.jobMessage})
         })
 
-        if(apply!= undefined)
+        if(apply.ok)
         {
            ctx.reply("Job Applied successfully!!!");
         }
@@ -316,7 +348,7 @@ bot.on('text', async(ctx) => {
           
           // console.log(apply);
           
-          ctx.reply("could not apply")
+          ctx.reply(mesg.msg)
         }
      }catch(err)
      {
@@ -359,7 +391,8 @@ bot.on('text', async(ctx) => {
               const response = await fetch(`https://online-job-portal-part-time.onrender.com/api/jobs/createjob`, {
                 method : 'POST',
                 headers : {
-                  "Content-Type" : "application/json"
+                  "Content-Type" : "application/json",
+                  "Authorization" : ctx.session.token
                 },
                 body : JSON.stringify({
                   category:userState.category,
@@ -393,6 +426,38 @@ bot.on('text', async(ctx) => {
                ctx.reply("Unable to create job")
              }
             
+          }
+
+          else if(userState.state == "awaiting_query")
+          {
+            try{
+
+              const sendMessage =  await fetch(`https://online-job-portal-part-time.onrender.com/api/contact`, {
+                method : 'POST',
+                headers : {
+                  "Content-Type" : "application/json"
+                },
+                body : JSON.stringify({
+                  username : ctx.session.username,
+                  email : ctx.session.email,
+                  message : getMessage
+                })
+               })
+
+               if(sendMessage.ok)
+               {
+                ctx.reply("Message sent successfully...")
+               }
+
+            }catch(err)
+            {
+              ctx.reply("Some occurred, please try later.")
+            }
+          }
+          else
+          {
+            const aiResponse = await geminiResponse(getMessage)
+            await ctx.reply(aiResponse)
           }
       
 });
